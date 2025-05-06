@@ -72,13 +72,21 @@ body {
     text-align: center;
     color: white;
     background-color: rgba(0,0,0,0.5);
-    padding: 5px;
+    padding: 10px;
     border-radius: 5px;
     margin: 0 20px;
+    font-size: 14px;
   }
   
-  #ar-content {
-    position: absolute;
-    width: 100%;
-    height: 100%;
+  .controls-info p {
+    margin: 5px 0;
   }
+  
+  @media (max-width: 600px) {
+    .controls-info {
+      font-size: 12px;
+      padding: 8px;
+    }
+  }
+  
+ 
