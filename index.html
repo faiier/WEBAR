@@ -2,120 +2,61 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>แบบทดสอบ AR 3D</title>
-  
-  <!-- A-Frame และ AR.js -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-  
-  <!-- Howler.js สำหรับเสียง -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
-  
-  <!-- สไตล์ -->
   <link rel="stylesheet" href="style.css">
-  
-  <!-- ฟอนต์ -->
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* เพิ่มในส่วน head */
+    a-scene {
+      cursor: grab;
+    }
+    
+    a-scene:active {
+      cursor: grabbing;
+    }
+  </style>
 </head>
 <body>
-  <!-- ฉากหลัก -->
   <a-scene 
     vr-mode-ui="enabled: false"
-    arjs="sourceType: webcam; detectionMode: mono; matrixCodeType: 3x3;"
-    renderer="antialias: true; logarithmicDepthBuffer: true; precision: mediump;"
+    arjs="sourceType: webcam; detectionMode: mono; matrixCodeType: 3x3; "
+    renderer="logarithmicDepthBuffer: true; precision: mediump;"
     embedded
   >
     <!-- กล้อง -->
     <a-entity 
       camera 
-      position="0 0 0" 
+      position="0 0 0"
       look-controls="enabled: false"
-      arjs-camera="fov: 60; near: 0.01; far: 10000;"
+      arjs-camera="fov: 60; near: 0.1; far: 100;"
     ></a-entity>
     
-    <!-- ระบบปรับตำแหน่งโมเดลอัตโนมัติ -->
-  <a-entity id="ar-content" visible="false">
-    <a-entity 
-      id="model-wrapper"
-      position="0 0 0"
-      model-aligner="offsetY: -0.5"
-    >
-      <a-entity 
-        id="model-container"
-        position="0 0 -1.5"
-        responsive-scale="mobile: 0.8; desktop: 1.2"
-      ></a-entity>
+    <!-- เนื้อหา AR -->
+    <a-entity id="ar-content" visible="false">
+      <a-entity id="model-container" position="0 0 -1.5"></a-entity>
     </a-entity>
-  </a-entity>
     
     <!-- หน้าจอเริ่มต้น -->
     <div id="start-screen" class="screen">
-      <div class="content">
-        <h1>แบบทดสอบ AR 3D</h1>
-        <p>ใช้เทคโนโลยี AR เพื่อศึกษาชิ้นส่วน 3 มิติ</p>
-        <button id="start-button" class="btn">เริ่มการทดสอบ</button>
-        <div class="requirements">
-          <h3>ข้อกำหนดระบบ:</h3>
-          <ul>
-            <li>กล้องหลังมือถือ</li>
-            <li>Chrome หรือ Firefox เวอร์ชันล่าสุด</li>
-            <li>พื้นที่แสงสว่างเพียงพอ</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    
-    <!-- หน้าจอโหลด -->
-    <div id="loading-screen" class="screen" style="display:none;">
-      <div class="content">
-        <div class="spinner"></div>
-        <p id="loading-text">กำลังเตรียมสภาพแวดล้อม AR...</p>
-        <div class="progress-container">
-          <div id="progress-bar" class="progress-bar"></div>
-        </div>
-      </div>
+      <h1>แบบทดสอบ AR 3D</h1>
+      <button id="start-button" class="btn">เริ่มการทดสอบ</button>
     </div>
     
     <!-- หน้าจอแบบทดสอบ -->
     <div id="quiz-screen" class="screen" style="display:none;">
-      <div id="quiz-header">
-        <span id="question-counter">คำถามที่ 1/5</span>
-        <span id="score-display">คะแนน: 0</span>
-      </div>
-      
-      <div id="quiz-content">
+      <div class="quiz-container">
         <h2 id="question-text"></h2>
-        <div id="options-container" class="options-grid"></div>
-      </div>
-      
-      <div id="controls-info">
-        <div class="control-item">
-          <span class="icon">✋</span> ลากเพื่อหมุน
+        <div id="options-container"></div>
+        <div id="controls-info">
+          <p>ใช้นิ้วเดียวลากเพื่อหมุนโมเดล</p>
+          <p>ใช้นิ้วสองนิ้ว pinch เพื่อย่อ/ขยาย</p>
         </div>
-        <div class="control-item">
-          <span class="icon">🤏</span> Pinch เพื่อย่อ/ขยาย
-        </div>
-      </div>
     </div>
-    
-    <!-- หน้าจอผลลัพธ์ -->
-    <div id="result-screen" class="screen" style="display:none;">
-      <div class="content">
-        <h1>แบบทดสอบเสร็จสิ้น!</h1>
-        <div id="result-stats">
-          <p>คะแนนที่ได้: <span id="final-score">0</span>/<span id="total-questions">0</span></p>
-          <p>ตอบถูก: <span id="correct-answers">0</span> ข้อ</p>
-          <p>ใช้เวลา: <span id="time-used">0</span> วินาที</p>
-        </div>
-        <button id="restart-button" class="btn">ทำแบบทดสอบอีกครั้ง</button>
-      </div>
-    </div>
+  </div>
   </a-scene>
 
-  <!-- สคริปต์ -->
   <script src="app.js"></script>
 </body>
 </html>
