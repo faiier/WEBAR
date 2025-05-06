@@ -1,130 +1,297 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Quiz data
-    const quizData = [
-      {
-        question: "นี่คือโมเดลของอะไร?",
-        options: ["รถยนต์", "เครื่องบิน", "เรือ", "จักรยาน"],
-        correctAnswer: 0,
-        model: "./assets/models/model1.glb",
-        scale: "0.5 0.5 0.5"
-      },
-      {
-        question: "ส่วนสีแดงคืออะไร?",
-        options: ["ประตู", "ล้อ", "กระจกหน้า", "ไฟท้าย"],
-        correctAnswer: 2,
-        model: "./assets/models/model2.glb",
-        scale: "0.3 0.3 0.3"
-      }
-    ];
-  
-    // DOM Elements
-    const startScreen = document.getElementById('start-screen');
-    const startButton = document.getElementById('start-button');
-    const questionText = document.getElementById('question-text');
-    const optionsContainer = document.getElementById('options-container');
-    const arContent = document.getElementById('ar-content');
-    const modelContainer = document.getElementById('model-container');
-    const controlsInfo = document.getElementById('controls-info');
-  
-    // Variables
-    let currentQuestionIndex = 0;
-    let modelEntity = null;
-    let isDragging = false;
-    let previousTouchPosition = { x: 0, y: 0 };
-    let scale = 1;
-  
-    // Initialize
-    function init() {
-      startButton.addEventListener('click', startARExperience);
-      setupEventListeners();
-      controlsInfo.style.display = 'none';
+// ข้อมูลแบบทดสอบ
+const quizData = [
+    {
+      question: "นี่คือโมเดลของอะไร?",
+      options: ["รถยนต์", "เครื่องบิน", "เรือ", "จักรยาน"],
+      correctAnswer: 0,
+      model: "assets/models/model1.glb",
+      scale: "0.5 0.5 0.5",
+      feedback: "ถูกต้อง! นี่คือโมเดลรถยนต์ไฟฟ้ารุ่นใหม่"
+    },
+    {
+      question: "ส่วนสีแดงคืออะไร?",
+      options: ["ประตู", "ล้อ", "กระจกหน้า", "ไฟท้าย"],
+      correctAnswer: 2,
+      model: "assets/models/model2.glb",
+      scale: "0.5 0.5 0.5",
+      feedback: "ใช่แล้ว! ส่วนสีแดงคือกระจกหน้าซึ่งออกแบบมาเป็นพิเศษ"
     }
+  ];
   
-    // Start AR Experience
-    function startARExperience() {
-      startScreen.style.display = 'none';
-      arContent.setAttribute('visible', 'true');
-      controlsInfo.style.display = 'block';
-      loadQuestion(currentQuestionIndex);
+  // ตัวแปรระบบ
+  let currentQuestionIndex = 0;
+  let score = 0;
+  let startTime;
+  let modelEntity = null;
+  let currentScale = 1;
+  let isDragging = false;
+  let previousTouchPosition = { x: 0, y: 0 };
+  let initialPinchDistance = 0;
+  let initialScale = 1;
+  
+  // DOM Elements
+  const startScreen = document.getElementById('start-screen');
+  const loadingScreen = document.getElementById('loading-screen');
+  const quizScreen = document.getElementById('quiz-screen');
+  const resultScreen = document.getElementById('result-screen');
+  const startButton = document.getElementById('start-button');
+  const restartButton = document.getElementById('restart-button');
+  const questionText = document.getElementById('question-text');
+  const optionsContainer = document.getElementById('options-container');
+  const questionCounter = document.getElementById('question-counter');
+  const scoreDisplay = document.getElementById('score-display');
+  const finalScore = document.getElementById('final-score');
+  const correctAnswers = document.getElementById('correct-answers');
+  const totalQuestions = document.getElementById('total-questions');
+  const timeUsed = document.getElementById('time-used');
+  const loadingText = document.getElementById('loading-text');
+  const progressBar = document.getElementById('progress-bar');
+  
+  // เสียง
+  const sounds = {
+    correct: new Howl({ src: ['assets/sounds/correct.mp3'] }),
+    wrong: new Howl({ src: ['assets/sounds/wrong.mp3'] })
+  };
+  
+  // ตรวจสอบอุปกรณ์
+  function checkDeviceCompatibility() {
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isMobile = isIOS || isAndroid;
+    
+    if (!isMobile) {
+      alert("สำหรับประสบการณ์ที่ดีที่สุด กรุณาใช้มือถือหรือแท็บเล็ต\n\nPlease use a mobile device for the best experience.");
     }
+    
+    return isMobile;
+  }
   
-    // Load Question
-    function loadQuestion(index) {
-      if (index >= quizData.length) {
-        // Quiz completed
-        questionText.textContent = "เสร็จสิ้นแบบทดสอบ!";
-        optionsContainer.innerHTML = '';
-        return;
-      }
+  // Component สำหรับ responsive scale
+  AFRAME.registerComponent('model-aligner', {
+    schema: {
+      offsetY: { type: 'number', default: 0 }
+    },
   
-      const question = quizData[index];
-      questionText.textContent = question.question;
+    init: function() {
+      this.camera = document.querySelector('[camera]');
+      this.modelContainer = document.getElementById('model-container');
+      window.addEventListener('resize', this.alignModel.bind(this));
+    },
+  
+    alignModel: function() {
+      if (!this.modelContainer || !this.modelContainer.object3D) return;
       
-      // Clear previous options
-      optionsContainer.innerHTML = '';
+      // คำนวณตำแหน่งกลางหน้าจอ
+      const camera = this.camera.object3D;
+      const vector = new THREE.Vector3(0, 0, -1);
+      vector.applyQuaternion(camera.quaternion);
       
-      // Add new options
-      question.options.forEach((option, i) => {
-        const button = document.createElement('button');
-        button.className = 'option-button';
-        button.textContent = option;
-        button.addEventListener('click', () => checkAnswer(i));
-        optionsContainer.appendChild(button);
+      // ปรับตำแหน่งแนวตั้งตาม offsetY
+      const offsetY = this.data.offsetY;
+      this.el.setAttribute('position', {
+        x: vector.x,
+        y: vector.y + offsetY,
+        z: vector.z
       });
-  
-      // Load 3D model
-      loadModel(question.model, question.scale);
-    }
-  
-    // Check Answer
-    function checkAnswer(selectedIndex) {
-      const currentQuestion = quizData[currentQuestionIndex];
       
-      if (selectedIndex === currentQuestion.correctAnswer) {
-        // Correct answer
-        questionText.textContent = "ถูกต้อง! กำลังไปข้อถัดไป...";
-        setTimeout(() => {
-          currentQuestionIndex++;
-          loadQuestion(currentQuestionIndex);
-        }, 1500);
-      } else {
-        // Wrong answer
-        questionText.textContent = "คำตอบไม่ถูกต้อง ลองอีกครั้ง!";
+      // ปรับขนาดโมเดลให้พอดีกับหน้าจอ
+      this.adjustModelSize();
+    },
+  
+    adjustModelSize: function() {
+        const model = this.modelContainer.object3D;
+        if (!model || !model.children[0]) return;
+        
+        const box = new THREE.Box3().setFromObject(model.children[0]);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const baseScale = 1.5 / maxDim;
+        
+        // เก็บเฉพาะ baseScale โดยไม่กำหนด scale โดยตรง
+        this.modelContainer.setAttribute('data-base-scale', baseScale);
+        
+        // คำนวณ scale ใหม่จาก baseScale และ currentScale
+        this.updateModelScale();
+      },
+      
+      updateModelScale: function() {
+        const baseScale = parseFloat(this.modelContainer.getAttribute('data-base-scale')) || 1;
+        const newScale = baseScale * currentScale;
+        
+        this.modelContainer.setAttribute('scale', {
+          x: newScale,
+          y: newScale,
+          z: newScale
+        });
+      },
+  
+    tick: function() {
+      if (this.camera) {
+        this.el.object3D.quaternion.copy(this.camera.object3D.quaternion);
       }
     }
+  });
   
-    // ในส่วนของ loadModel ให้แก้ไขเป็นดังนี้
-function loadModel(modelPath, modelScale) {
-    // Remove previous model if exists
+  // เริ่มการทดสอบ
+  function startQuiz() {
+    startScreen.style.display = 'none';
+    loadingScreen.style.display = 'flex';
+    
+    // สมมติการโหลดทรัพยากร
+    simulateLoading(() => {
+      loadingScreen.style.display = 'none';
+      quizScreen.style.display = 'block';
+      document.querySelector('#ar-content').setAttribute('visible', 'true');
+      startTime = new Date();
+      loadQuestion(currentQuestionIndex);
+    });
+  }
+  
+  // โหลดคำถาม
+  function loadQuestion(index) {
+    if (index >= quizData.length) {
+      endQuiz();
+      return;
+    }
+  
+    const question = quizData[index];
+    questionText.textContent = question.question;
+    questionCounter.textContent = `คำถามที่ ${index + 1}/${quizData.length}`;
+    scoreDisplay.textContent = `คะแนน: ${score}`;
+    
+    // ล้างตัวเลือกเก่า
+    optionsContainer.innerHTML = '';
+    
+    // เพิ่มตัวเลือกใหม่
+    question.options.forEach((option, i) => {
+      const button = document.createElement('button');
+      button.className = 'option-btn';
+      button.textContent = option;
+      button.addEventListener('click', () => selectAnswer(i));
+      optionsContainer.appendChild(button);
+    });
+  
+    // โหลดโมเดล 3D
+    loadModel(question.model);
+  }
+  
+  // โหลดโมเดล 3D
+  function loadModel(modelPath) {
+    const modelContainer = document.getElementById('model-container');
+    
+    // ลบโมเดลเก่าถ้ามี
     if (modelEntity) {
       modelContainer.removeChild(modelEntity);
     }
   
-    // Create new model entity
+    // สร้างโมเดลใหม่
     modelEntity = document.createElement('a-entity');
-    modelEntity.setAttribute('gltf-model', modelPath);
-    modelEntity.setAttribute('scale', modelScale);
-    modelEntity.setAttribute('position', '0 0 -1');
+    modelEntity.setAttribute('gltf-model', `url(${modelPath})`);
     modelEntity.setAttribute('rotation', '0 0 0');
     
-    // เก็บค่า scale ต้นฉบับไว้
-    modelEntity.setAttribute('data-original-scale', modelScale);
-    
     modelContainer.appendChild(modelEntity);
+    
+    // รีเซ็ตการควบคุม
+    currentScale = 1;
+    
+    // เรียกการจัดตำแหน่งใหม่หลังจากโมเดลโหลดเสร็จ
+    modelEntity.addEventListener('model-loaded', () => {
+      const aligner = document.querySelector('[model-aligner]');
+      if (aligner && aligner.components['model-aligner']) {
+        aligner.components['model-aligner'].alignModel();
+      }
+    });
   }
   
-  // แทนที่ฟังก์ชัน setupEventListeners ทั้งหมดด้วยเวอร์ชันใหม่นี้
-  function setupEventListeners() {
+  // เลือกคำตอบ
+  function selectAnswer(selectedIndex) {
+    const currentQuestion = quizData[currentQuestionIndex];
+    const optionButtons = document.querySelectorAll('.option-btn');
+    
+    // ปิดการคลิกปุ่มชั่วคราว
+    optionButtons.forEach(btn => {
+      btn.style.pointerEvents = 'none';
+    });
+  
+    // ตรวจสอบคำตอบ
+    if (selectedIndex === currentQuestion.correctAnswer) {
+      // คำตอบถูกต้อง
+      optionButtons[selectedIndex].classList.add('correct');
+      sounds.correct.play();
+      score += 10;
+      scoreDisplay.textContent = `คะแนน: ${score}`;
+      
+      // แสดงคำติชม
+      questionText.textContent = currentQuestion.feedback || "ถูกต้อง!";
+    } else {
+      // คำตอบผิด
+      optionButtons[selectedIndex].classList.add('wrong');
+      optionButtons[currentQuestion.correctAnswer].classList.add('correct');
+      sounds.wrong.play();
+      
+      // แสดงคำติชม
+      questionText.textContent = "ยังไม่ถูกต้อง! " + (currentQuestion.feedback || "");
+    }
+  
+    // ไปคำถามถัดไปหลังจากดีเลย์
+    setTimeout(() => {
+      currentQuestionIndex++;
+      loadQuestion(currentQuestionIndex);
+    }, 2000);
+  }
+  
+  // จบการทดสอบ
+  function endQuiz() {
+    const endTime = new Date();
+    const timeSpent = Math.floor((endTime - startTime) / 1000);
+    
+    quizScreen.style.display = 'none';
+    resultScreen.style.display = 'flex';
+    document.querySelector('#ar-content').setAttribute('visible', 'false');
+    
+    finalScore.textContent = score;
+    correctAnswers.textContent = score / 10;
+    totalQuestions.textContent = quizData.length;
+    timeUsed.textContent = timeSpent;
+  }
+  
+  // เริ่มใหม่
+  function restartQuiz() {
+    currentQuestionIndex = 0;
+    score = 0;
+    resultScreen.style.display = 'none';
+    startQuiz();
+  }
+  
+  // จำลองการโหลด
+  function simulateLoading(callback) {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 10;
+      if (progress > 100) progress = 100;
+      
+      progressBar.style.width = `${progress}%`;
+      loadingText.textContent = getLoadingMessage(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(callback, 500);
+      }
+    }, 300);
+  }
+  
+  function getLoadingMessage(progress) {
+    if (progress < 30) return "กำลังเตรียมสภาพแวดล้อม AR...";
+    if (progress < 60) return "กำลังโหลดโมเดล 3D...";
+    if (progress < 90) return "กำลังเตรียมแบบทดสอบ...";
+    return "พร้อมแล้ว!";
+  }
+  
+  // การควบคุมโมเดล
+  function setupModelControls() {
     const scene = document.querySelector('a-scene');
     
-    // ตัวแปรสำหรับการควบคุม
-    let isDragging = false;
-    let previousTouchPosition = { x: 0, y: 0 };
-    let initialScale = 1;
-    let currentScale = 1;
-    let initialDistance = 0;
-  
-    // Touch/Mouse events for rotation
+    // การหมุนด้วยการลาก
     scene.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         isDragging = true;
@@ -132,23 +299,26 @@ function loadModel(modelPath, modelScale) {
           x: e.touches[0].clientX,
           y: e.touches[0].clientY
         };
+        
+        // หยุด animation ขณะลาก
+        if (modelEntity) {
+          modelEntity.components.animation.pause();
+        }
       } else if (e.touches.length === 2) {
-        // สำหรับการซูม
+        // ซูมด้วย pinch
         isDragging = false;
-        initialDistance = getDistance(
+        initialPinchDistance = getDistance(
           e.touches[0].clientX, e.touches[0].clientY,
           e.touches[1].clientX, e.touches[1].clientY
         );
-        if (modelEntity) {
-          initialScale = currentScale;
-        }
+        initialScale = currentScale;
       }
     });
   
     scene.addEventListener('touchmove', (e) => {
       if (!modelEntity) return;
       
-      // การหมุนโมเดล
+      // การหมุน
       if (isDragging && e.touches.length === 1) {
         const deltaX = e.touches[0].clientX - previousTouchPosition.x;
         const deltaY = e.touches[0].clientY - previousTouchPosition.y;
@@ -164,45 +334,48 @@ function loadModel(modelPath, modelScale) {
           x: e.touches[0].clientX,
           y: e.touches[0].clientY
         };
-      }
-      // การซูมโมเดล
+      } 
+      // การซูม
       else if (e.touches.length === 2) {
         const currentDistance = getDistance(
           e.touches[0].clientX, e.touches[0].clientY,
           e.touches[1].clientX, e.touches[1].clientY
         );
         
-        if (initialDistance > 0) {
-          const scaleFactor = currentDistance / initialDistance;
-          currentScale = Math.max(0.2, Math.min(3, initialScale * scaleFactor));
-          
-          // ใช้ scale ต้นฉบับและปรับตามการซูมของผู้ใช้
-          const originalScale = modelEntity.getAttribute('data-original-scale');
-          const scaleArray = originalScale.split(' ').map(parseFloat);
-          
-          const newScale = {
-            x: scaleArray[0] * currentScale,
-            y: scaleArray[1] * currentScale,
-            z: scaleArray[2] * currentScale
-          };
-          
-          modelEntity.setAttribute('scale', `${newScale.x} ${newScale.y} ${newScale.z}`);
+        if (initialPinchDistance > 0) {
+            const scaleFactor = currentDistance / initialPinchDistance;
+            currentScale = Math.max(0.3, Math.min(3, initialScale * scaleFactor));
+            
+            // เรียกใช้ฟังก์ชันอัปเดต scale ใหม่
+            const aligner = document.querySelector('[model-aligner]');
+            if (aligner && aligner.components['model-aligner']) {
+              aligner.components['model-aligner'].updateModelScale();
+            }
+          }
         }
-      }
-    });
+      });
   
     scene.addEventListener('touchend', () => {
       isDragging = false;
-      initialDistance = 0;
+      initialPinchDistance = 0;
+      
+      // เริ่ม animation ใหม่เมื่อปล่อย
+      if (modelEntity) {
+        modelEntity.components.animation.play();
+      }
     });
   
-    // สำหรับการทดสอบบน Desktop ด้วยเมาส์
+    // สำหรับ Desktop
     let isMouseDown = false;
     let previousMousePosition = { x: 0, y: 0 };
   
     scene.addEventListener('mousedown', (e) => {
       isMouseDown = true;
       previousMousePosition = { x: e.clientX, y: e.clientY };
+      
+      if (modelEntity) {
+        modelEntity.components.animation.pause();
+      }
     });
   
     scene.addEventListener('mousemove', (e) => {
@@ -223,34 +396,49 @@ function loadModel(modelPath, modelScale) {
   
     scene.addEventListener('mouseup', () => {
       isMouseDown = false;
+      if (modelEntity) {
+        modelEntity.components.animation.play();
+      }
     });
   
-    // การซูมด้วยเมาส์ wheel
+    // ซูมด้วยเมาส์ wheel
     scene.addEventListener('wheel', (e) => {
       if (!modelEntity) return;
       
       e.preventDefault();
       const delta = -e.deltaY * 0.001;
-      currentScale = Math.max(0.2, Math.min(3, currentScale + delta));
-      
-      const originalScale = modelEntity.getAttribute('data-original-scale');
-      const scaleArray = originalScale.split(' ').map(parseFloat);
-      
-      const newScale = {
-        x: scaleArray[0] * currentScale,
-        y: scaleArray[1] * currentScale,
-        z: scaleArray[2] * currentScale
-      };
-      
-      modelEntity.setAttribute('scale', `${newScale.x} ${newScale.y} ${newScale.z}`);
+      currentScale = Math.max(0.3, Math.min(3, currentScale + delta));
+      updateModelScale();
     });
   }
   
-  // ฟังก์ชันช่วยเหลือคำนวณระยะทาง (เดิม)
+  function updateModelScale() {
+    if (!modelEntity) return;
+    
+    const originalScale = modelEntity.getAttribute('data-original-scale');
+    const scaleArray = originalScale.split(' ').map(parseFloat);
+    
+    const newScale = {
+      x: scaleArray[0] * currentScale,
+      y: scaleArray[1] * currentScale,
+      z: scaleArray[2] * currentScale
+    };
+    
+    modelEntity.setAttribute('scale', `${newScale.x} ${newScale.y} ${newScale.z}`);
+  }
+  
   function getDistance(x1, y1, x2, y2) {
     return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
   }
   
-    // Initialize the app
-    init();
-  });
+  // เริ่มต้นแอป
+  function init() {
+    checkDeviceCompatibility();
+    setupModelControls();
+    
+    startButton.addEventListener('click', startQuiz);
+    restartButton.addEventListener('click', restartQuiz);
+  }
+  
+  // เริ่มแอปเมื่อ DOM โหลดเสร็จ
+  document.addEventListener('DOMContentLoaded', init);

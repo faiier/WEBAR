@@ -1,0 +1,226 @@
+/* Reset และ Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Prompt', sans-serif;
+}
+
+a-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* หน้าจอทั่วไป */
+.screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  text-align: center;
+}
+
+.screen .content {
+  max-width: 800px;
+  width: 100%;
+  padding: 20px;
+}
+
+/* ปุ่ม */
+.btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  font-size: 18px;
+  border-radius: 30px;
+  cursor: pointer;
+  margin: 20px 0;
+  font-family: 'Prompt', sans-serif;
+  transition: all 0.3s;
+  min-width: 200px;
+}
+
+.btn:hover {
+  background-color: #45a049;
+  transform: scale(1.05);
+}
+
+/* หน้าจอโหลด */
+#loading-screen .spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #4CAF50;
+  animation: spin 1s ease-in-out infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  margin-top: 20px;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background-color: #4CAF50;
+  border-radius: 5px;
+  transition: width 0.3s;
+}
+
+/* หน้าจอแบบทดสอบ */
+#quiz-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+#quiz-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+#question-text {
+  font-size: clamp(18px, 4vw, 24px);
+  margin-bottom: 20px;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.option-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: clamp(16px, 3vw, 18px);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.option-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.option-btn.correct {
+  background-color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.option-btn.wrong {
+  background-color: #f44336;
+  border-color: #f44336;
+}
+
+/* การควบคุม */
+#controls-info {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 15px;
+  font-size: clamp(12px, 3vw, 14px);
+  opacity: 0.8;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.control-item .icon {
+  font-size: 18px;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .options-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  #quiz-screen {
+    padding: 30px;
+  }
+  
+  .option-btn {
+    padding: 15px;
+  }
+}
+
+@media (max-height: 600px) {
+  #question-text {
+    margin-bottom: 10px;
+  }
+  
+  .options-grid {
+    gap: 8px;
+  }
+  
+  .option-btn {
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  #model-container {
+    position: relative;
+    top: -20vh; /* ปรับตำแหน่งแนวตั้งบนมือถือ */
+  }
+}
+
+/* ปรับปรุงการแสดงผล AR */
+#ar-content {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#model-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
