@@ -76,24 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
       loadModel(question.model, question.scale);
     }
   
-    // Load 3D Model
-    function loadModel(modelPath, modelScale) {
-      // Remove previous model if exists
-      if (modelEntity) {
-        modelContainer.removeChild(modelEntity);
-      }
-  
-      // Create new model entity
-      modelEntity = document.createElement('a-entity');
-      modelEntity.setAttribute('gltf-model', modelPath);
-      modelEntity.setAttribute('scale', modelScale);
-      modelEntity.setAttribute('position', '0 0 -1');
-      modelEntity.setAttribute('rotation', '0 0 0');
-      modelEntity.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear');
-      
-      modelContainer.appendChild(modelEntity);
-    }
-  
     // Check Answer
     function checkAnswer(selectedIndex) {
       const currentQuestion = quizData[currentQuestionIndex];
@@ -111,88 +93,163 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   
-    // Setup Event Listeners for Model Interaction
-    function setupEventListeners() {
-      const scene = document.querySelector('a-scene');
-      
-      // Touch/Mouse events for rotation
-      scene.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          isDragging = true;
-          previousTouchPosition = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY
-          };
-        }
-      });
+    // ในส่วนของ loadModel ให้แก้ไขเป็นดังนี้
+function loadModel(modelPath, modelScale) {
+    // Remove previous model if exists
+    if (modelEntity) {
+      modelContainer.removeChild(modelEntity);
+    }
   
-      scene.addEventListener('touchmove', (e) => {
-        if (isDragging && e.touches.length === 1 && modelEntity) {
-          const deltaX = e.touches[0].clientX - previousTouchPosition.x;
-          const deltaY = e.touches[0].clientY - previousTouchPosition.y;
-          
-          const rotation = modelEntity.getAttribute('rotation');
-          modelEntity.setAttribute('rotation', {
-            x: rotation.x - deltaY * 0.5,
-            y: rotation.y - deltaX * 0.5,
-            z: rotation.z
-          });
-          
-          previousTouchPosition = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY
-          };
-        }
-      });
+    // Create new model entity
+    modelEntity = document.createElement('a-entity');
+    modelEntity.setAttribute('gltf-model', modelPath);
+    modelEntity.setAttribute('scale', modelScale);
+    modelEntity.setAttribute('position', '0 0 -1');
+    modelEntity.setAttribute('rotation', '0 0 0');
+    
+    // เก็บค่า scale ต้นฉบับไว้
+    modelEntity.setAttribute('data-original-scale', modelScale);
+    
+    modelContainer.appendChild(modelEntity);
+  }
   
-      scene.addEventListener('touchend', () => {
+  // แทนที่ฟังก์ชัน setupEventListeners ทั้งหมดด้วยเวอร์ชันใหม่นี้
+  function setupEventListeners() {
+    const scene = document.querySelector('a-scene');
+    
+    // ตัวแปรสำหรับการควบคุม
+    let isDragging = false;
+    let previousTouchPosition = { x: 0, y: 0 };
+    let initialScale = 1;
+    let currentScale = 1;
+    let initialDistance = 0;
+  
+    // Touch/Mouse events for rotation
+    scene.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        previousTouchPosition = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+      } else if (e.touches.length === 2) {
+        // สำหรับการซูม
         isDragging = false;
-      });
-  
-      // Pinch to zoom
-      let initialDistance = 0;
-      scene.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2 && modelEntity) {
-          initialDistance = getDistance(
-            e.touches[0].clientX, e.touches[0].clientY,
-            e.touches[1].clientX, e.touches[1].clientY
-          );
+        initialDistance = getDistance(
+          e.touches[0].clientX, e.touches[0].clientY,
+          e.touches[1].clientX, e.touches[1].clientY
+        );
+        if (modelEntity) {
+          initialScale = currentScale;
         }
-      });
+      }
+    });
   
-      scene.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2 && modelEntity) {
-          const currentDistance = getDistance(
-            e.touches[0].clientX, e.touches[0].clientY,
-            e.touches[1].clientX, e.touches[1].clientY
-          );
+    scene.addEventListener('touchmove', (e) => {
+      if (!modelEntity) return;
+      
+      // การหมุนโมเดล
+      if (isDragging && e.touches.length === 1) {
+        const deltaX = e.touches[0].clientX - previousTouchPosition.x;
+        const deltaY = e.touches[0].clientY - previousTouchPosition.y;
+        
+        const rotation = modelEntity.getAttribute('rotation');
+        modelEntity.setAttribute('rotation', {
+          x: rotation.x - deltaY * 0.5,
+          y: rotation.y - deltaX * 0.5,
+          z: rotation.z
+        });
+        
+        previousTouchPosition = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+      }
+      // การซูมโมเดล
+      else if (e.touches.length === 2) {
+        const currentDistance = getDistance(
+          e.touches[0].clientX, e.touches[0].clientY,
+          e.touches[1].clientX, e.touches[1].clientY
+        );
+        
+        if (initialDistance > 0) {
+          const scaleFactor = currentDistance / initialDistance;
+          currentScale = Math.max(0.2, Math.min(3, initialScale * scaleFactor));
           
-          if (initialDistance > 0) {
-            const delta = currentDistance - initialDistance;
-            scale += delta * 0.001;
-            scale = Math.max(0.1, Math.min(2, scale));
-            
-            const currentScale = modelEntity.getAttribute('scale');
-            modelEntity.setAttribute('scale', {
-              x: currentScale.x * scale,
-              y: currentScale.y * scale,
-              z: currentScale.z * scale
-            });
-            
-            initialDistance = currentDistance;
-          }
+          // ใช้ scale ต้นฉบับและปรับตามการซูมของผู้ใช้
+          const originalScale = modelEntity.getAttribute('data-original-scale');
+          const scaleArray = originalScale.split(' ').map(parseFloat);
+          
+          const newScale = {
+            x: scaleArray[0] * currentScale,
+            y: scaleArray[1] * currentScale,
+            z: scaleArray[2] * currentScale
+          };
+          
+          modelEntity.setAttribute('scale', `${newScale.x} ${newScale.y} ${newScale.z}`);
         }
-      });
+      }
+    });
   
-      scene.addEventListener('touchend', () => {
-        initialDistance = 0;
-      });
-    }
+    scene.addEventListener('touchend', () => {
+      isDragging = false;
+      initialDistance = 0;
+    });
   
-    // Helper function to calculate distance between two points
-    function getDistance(x1, y1, x2, y2) {
-      return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    }
+    // สำหรับการทดสอบบน Desktop ด้วยเมาส์
+    let isMouseDown = false;
+    let previousMousePosition = { x: 0, y: 0 };
+  
+    scene.addEventListener('mousedown', (e) => {
+      isMouseDown = true;
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+  
+    scene.addEventListener('mousemove', (e) => {
+      if (isMouseDown && modelEntity) {
+        const deltaX = e.clientX - previousMousePosition.x;
+        const deltaY = e.clientY - previousMousePosition.y;
+        
+        const rotation = modelEntity.getAttribute('rotation');
+        modelEntity.setAttribute('rotation', {
+          x: rotation.x - deltaY * 0.5,
+          y: rotation.y - deltaX * 0.5,
+          z: rotation.z
+        });
+        
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+      }
+    });
+  
+    scene.addEventListener('mouseup', () => {
+      isMouseDown = false;
+    });
+  
+    // การซูมด้วยเมาส์ wheel
+    scene.addEventListener('wheel', (e) => {
+      if (!modelEntity) return;
+      
+      e.preventDefault();
+      const delta = -e.deltaY * 0.001;
+      currentScale = Math.max(0.2, Math.min(3, currentScale + delta));
+      
+      const originalScale = modelEntity.getAttribute('data-original-scale');
+      const scaleArray = originalScale.split(' ').map(parseFloat);
+      
+      const newScale = {
+        x: scaleArray[0] * currentScale,
+        y: scaleArray[1] * currentScale,
+        z: scaleArray[2] * currentScale
+      };
+      
+      modelEntity.setAttribute('scale', `${newScale.x} ${newScale.y} ${newScale.z}`);
+    });
+  }
+  
+  // ฟังก์ชันช่วยเหลือคำนวณระยะทาง (เดิม)
+  function getDistance(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+  }
   
     // Initialize the app
     init();
