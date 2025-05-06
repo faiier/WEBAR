@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AR Quiz with Markerless Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+  <script src="app.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- AR Scene -->
+  <a-scene vr-mode-ui="enabled: false" arjs="sourceType: webcam; detectionMode: mono; matrixCodeType: 3x3;" renderer="logarithmicDepthBuffer: true;">
+    <!-- Camera -->
+    <a-entity camera></a-entity>
+    
+    <!-- AR Content (will be added dynamically) -->
+    <a-entity id="ar-content" visible="false">
+      <a-entity id="model-container" scale="0.5 0.5 0.5" position="0 0 -1"></a-entity>
+    </a-entity>
+    
+    <!-- UI Overlay -->
+    <a-entity id="ui" class="ui-overlay">
+      <div class="question-container">
+        <h2 id="question-text">Question will appear here</h2>
+        <div id="options-container" class="options-container"></div>
+      </div>
+      <div id="start-screen" class="start-screen">
+        <h1>AR Quiz</h1>
+        <button id="start-button" class="start-button">Start AR Experience</button>
+      </div>
+      <div id="controls-info" class="controls-info">
+        <p>Pinch to zoom | Drag to rotate</p>
+      </div>
+    </a-entity>
+  </a-scene>
+</body>
+</html>
