@@ -22,7 +22,7 @@
   <a-scene 
     vr-mode-ui="enabled: false"
     arjs="sourceType: webcam; detectionMode: mono; matrixCodeType: 3x3; "
-    renderer="logarithmicDepthBuffer: true; precision: mediump;"
+    renderer="preserveDrawingBuffer: true; precision: mediump;"
     embedded
   >
     <!-- กล้อง -->
@@ -35,7 +35,7 @@
     
     <!-- เนื้อหา AR -->
     <a-entity id="ar-content" visible="false">
-      <a-entity id="model-container" position="0 0 -1.5"></a-entity>
+      <a-entity id="model-container" position="0 0.3 -3"></a-entity>
     </a-entity>
     
     <!-- หน้าจอเริ่มต้น -->
