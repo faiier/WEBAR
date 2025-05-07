@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>แบบทดสอบ AR 3D</title>
+    <title>แบบทดสอบ AR 8</title>
     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     <link rel="stylesheet" href="style.css" />
@@ -24,8 +24,8 @@
   <body>
     <a-scene
       xr-mode-ui="enabled: false"
-      arjs="sourceType: webcam; detectionMode: mono; "
-      renderer="preserveDrawingBuffer: true; precision: mediump;"
+      arjs="sourceType: webcam; detectionMode: mono; matrixCodeType: 3x3;"
+      renderer="logarithmicDepthBuffer: true;"
       embedded
     >
       <!-- กล้อง -->
