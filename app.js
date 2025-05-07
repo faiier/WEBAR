@@ -51,7 +51,7 @@ function loadModel(modelPath) {
   // สร้างโมเดลใหม่
   modelEntity = document.createElement("a-entity");
   modelEntity.setAttribute("gltf-model", `url(${modelPath})`);
-  modelEntity.setAttribute("scale", "1 1 1");
+  modelEntity.setAttribute("scale", "0.3 0.3 0.3");
   modelEntity.setAttribute("data-base-scale", "1");
 
   modelContainer.appendChild(modelEntity);
@@ -214,3 +214,5 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("start-button").addEventListener("click", startQuiz);
   setupModelControls();
 });
+
+

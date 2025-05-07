@@ -1,62 +1,65 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>แบบทดสอบ AR 3D</title>
-  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* เพิ่มในส่วน head */
-    a-scene {
-      cursor: grab;
-    }
-    
-    a-scene:active {
-      cursor: grabbing;
-    }
-  </style>
-</head>
-<body>
-  <a-scene 
-    vr-mode-ui="enabled: false"
-    arjs="sourceType: webcam; detectionMode: mono; matrixCodeType: 3x3; "
-    renderer="preserveDrawingBuffer: true; precision: mediump;"
-    embedded
-  >
-    <!-- กล้อง -->
-    <a-entity 
-      camera 
-      position="0 0 0"
-      look-controls="enabled: false"
-      arjs-camera="fov: 60; near: 0.1; far: 100;"
-    ></a-entity>
-    
-    <!-- เนื้อหา AR -->
-    <a-entity id="ar-content" visible="false">
-      <a-entity id="model-container" position="0 0.3 -3"></a-entity>
-    </a-entity>
-    
-    <!-- หน้าจอเริ่มต้น -->
-    <div id="start-screen" class="screen">
-      <h1>แบบทดสอบ AR 3D</h1>
-      <button id="start-button" class="btn">เริ่มการทดสอบ</button>
-    </div>
-    
-    <!-- หน้าจอแบบทดสอบ -->
-    <div id="quiz-screen" class="screen" style="display:none;">
-      <div class="quiz-container">
-        <h2 id="question-text"></h2>
-        <div id="options-container"></div>
-        <div id="controls-info">
-          <p>ใช้นิ้วเดียวลากเพื่อหมุนโมเดล</p>
-          <p>ใช้นิ้วสองนิ้ว pinch เพื่อย่อ/ขยาย</p>
-        </div>
-    </div>
-  </div>
-  </a-scene>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>แบบทดสอบ AR 3D</title>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* เพิ่มในส่วน head */
+      a-scene {
+        cursor: grab;
+      }
 
-  <script src="app.js"></script>
-</body>
+      a-scene:active {
+        cursor: grabbing;
+      }
+    </style>
+  </head>
+  <body>
+    <a-scene
+      xr-mode-ui="enabled: false"
+      arjs="sourceType: webcam; detectionMode: mono; "
+      renderer="preserveDrawingBuffer: true; precision: mediump;"
+      embedded
+    >
+      <!-- กล้อง -->
+      <a-entity
+        camera
+        position="0 0 0"
+        look-controls="enabled: false"
+        arjs-camera="fov: 60; near: 0.1; far: 100;"
+      ></a-entity>
+
+      <!-- เนื้อหา AR -->
+      <a-entity id="ar-content" visible="false">
+        <a-entity id="model-container" position="0 0.2 -2" scale="0.3 0.3 0.3"></a-entity>
+      </a-entity>
+
+      <!-- หน้าจอเริ่มต้น -->
+      <div id="start-screen" class="screen">
+        <h1>แบบทดสอบ AR 3D</h1>
+        <button id="start-button" class="btn">เริ่มการทดสอบ</button>
+      </div>
+
+      <!-- หน้าจอแบบทดสอบ -->
+      <div id="quiz-screen" class="screen" style="display: none">
+        <div class="quiz-container">
+          <h2 id="question-text"></h2>
+          <div id="options-container"></div>
+          <div id="controls-info">
+            <p>ใช้นิ้วเดียวลากเพื่อหมุนโมเดล</p>
+            <p>ใช้นิ้วสองนิ้ว pinch เพื่อย่อ/ขยาย</p>
+          </div>
+        </div>
+      </div>
+    </a-scene>
+
+    <script src="app.js"></script>
+  </body>
 </html>
